@@ -2,15 +2,21 @@
 library(readxl)
 library(dplyr)
 library(ggplot2)
+library(tidyr)
 
-# 1. Import the dataset into R
-file_path <- "sts_inpr_for_import.xlsx"
+# 1. Import the dataset and select only individual countries
+file_path <- "/mnt/data/sts_inpr_for_import.xlsx"
 data <- read_excel(file_path)
 
-# Select individual countries from geographies and change a column name
+# Preview the dataset to identify the structure
+head(data)
+str(data)
+
+# Assume 'geo' contains country codes and 'time' columns start with years like "2019", "2020", etc.
+# Select individual countries and change a column name
 data <- data %>%
-  filter(str_detect(geo, "^[A-Z]{2}$")) %>%  # Assuming 'geo' represents countries (e.g., "DE", "FR")
-  rename(Country = geo)
+  filter(nchar(geo) == 2) %>% # Select rows where 'geo' has 2-character country codes
+  rename(Country = geo) # Rename 'geo' to 'Country'
 
 # 2. Industry breakdown and number of countries
 industry_breakdown <- unique(data$industry)
@@ -20,21 +26,22 @@ cat("Industry breakdown:", industry_breakdown, "\n")
 cat("Number of countries:", num_countries, "\n")
 
 # 3. Ensure production volumes are numeric
-numeric_columns <- names(data)[grep("^[0-9]{4}$", names(data))] # Identify columns with year names
+# Convert all columns with years to numeric
+numeric_columns <- names(data)[grep("^[0-9]{4}$", names(data))]
 data[numeric_columns] <- lapply(data[numeric_columns], as.numeric)
 
-# 4. Compute change in production volume from 2019 to 2022
+# 4. Compute the change in production volume from 2019 to 2022
 data <- data %>%
   mutate(Change_2019_2022 = (`2022` - `2019`) / `2019` * 100)
 
 # 5. Find the country with the highest and lowest change
 highest_change <- data %>%
   filter(Change_2019_2022 == max(Change_2019_2022, na.rm = TRUE)) %>%
-  select(Country, Change_2019_2022)
+  select(Country, industry, Change_2019_2022)
 
 lowest_change <- data %>%
   filter(Change_2019_2022 == min(Change_2019_2022, na.rm = TRUE)) %>%
-  select(Country, Change_2019_2022)
+  select(Country, industry, Change_2019_2022)
 
 cat("Highest change:\n", highest_change, "\n")
 cat("Lowest change:\n", lowest_change, "\n")
