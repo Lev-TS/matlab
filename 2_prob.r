@@ -1,56 +1,34 @@
-# Load necessary libraries
-library(readxl)
+# Load required library
 library(ggplot2)
 
-# Load the dataset
-file_path <- "/mnt/data/sts_inpr_for_import.xlsx"
-data <- read_excel(file_path)
-
-# Examine the dataset
-head(data)
-
-# Assume column names: 'x' and 'u' are available in the dataset, adapt as needed.
-x <- data$x  # Replace 'x' with the actual column name for independent variable
-u <- data$u  # Replace 'u' with the actual column name for residual
-
-# 1. Generate y using the given model: yt = β0 + β1xt + β2x^2t + ut
-set.seed(123)  # For reproducibility
-beta_0 <- 2  # Intercept
-beta_1 <- 3  # Linear coefficient
-beta_2 <- -0.5  # Quadratic coefficient
-
-y <- beta_0 + beta_1 * x + beta_2 * x^2 + u
-
-# 2. Define the OLS model function
-ols_model <- function(x, y) {
-  # Create a design matrix for the regression
-  X <- cbind(1, x, x^2)
-  # Compute coefficients using the OLS formula: β = (X'X)^(-1) X'y
-  beta <- solve(t(X) %*% X) %*% t(X) %*% y
-  # Return coefficients
-  return(as.vector(beta))
+# Define a function to estimate an OLS model
+ols_model <- function(n = 100, seed = 123) {
+  set.seed(seed)
+  
+  # Step 1: Generate data
+  x <- runif(n, -10, 10)  # Random x values between -10 and 10
+  u <- rnorm(n, 0, 5)     # Random residuals from normal distribution
+  beta0 <- 5
+  beta1 <- 2
+  beta2 <- -0.5
+  y <- beta0 + beta1 * x + beta2 * x^2 + u  # Generate y based on the model
+  
+  # Step 2: Fit the OLS model
+  model <- lm(y ~ x + I(x^2))  # Fit quadratic model
+  
+  # Step 3: Make a scatterplot with the linear fit
+  data <- data.frame(x = x, y = y)
+  ggplot(data, aes(x = x, y = y)) +
+    geom_point(color = "blue", alpha = 0.6) +  # Scatterplot
+    geom_smooth(method = "lm", formula = y ~ x + I(x^2), color = "red", se = FALSE) +
+    labs(title = "Scatterplot with Quadratic Fit",
+         x = "x",
+         y = "y") +
+    theme_minimal()
+  
+  # Step 4: Summary of the model
+  summary(model)
 }
 
-# Estimate coefficients
-coefficients <- ols_model(x, y)
-cat("Estimated coefficients:", coefficients, "\n")
-
-# 3. Scatterplot with linear fit
-# Create a dataframe for ggplot
-plot_data <- data.frame(x = x, y = y)
-
-# Add fitted values to the data
-plot_data$y_fit <- coefficients[1] + coefficients[2] * plot_data$x + coefficients[3] * plot_data$x^2
-
-# Plot scatterplot and linear fit
-ggplot(plot_data, aes(x = x, y = y)) +
-  geom_point(color = "blue", alpha = 0.7) +
-  geom_line(aes(y = y_fit), color = "red", size = 1) +
-  labs(title = "Scatterplot with Quadratic Fit",
-       x = "x",
-       y = "y") +
-  theme_minimal()
-
-# 4. Interpretation
-cat("Does the quadratic fit describe the association well?\n")
-cat("Answer: Yes, because the quadratic model captures the curvature in the relationship between x and y.")
+# Call the function
+ols_model()
